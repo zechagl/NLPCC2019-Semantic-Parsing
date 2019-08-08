@@ -1,0 +1,17 @@
+{
+  "multi-turn-entity": 0,
+  "aggregation": 1,
+  "cvt": 2,
+  "multi-turn-answer": 3,
+  "multi-choice": 4,
+  "multi-hop": 5,
+  "multi-turn-predicate": 6,
+  "multi-constraint": 7,
+  "superlative3": 8,
+  "comparative": 9,
+  "superlative1": 10,
+  "single-relation": 11,
+  "yesno": 12,
+  "superlative0": 13,
+  "superlative2": 14
+}
