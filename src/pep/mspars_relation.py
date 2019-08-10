@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
 import collections
 import csv
 import os
@@ -26,9 +25,24 @@ import modeling
 import optimization
 import tokenization
 import tensorflow as tf
-import numpy as np
 import codecs
 import json
+import numpy as np
+import sys
+from keras.layers import Input, Embedding, LSTM, Dense
+from keras.models import Model
+
+input_query = Input(shape=(10,), dtype='int32')
+embedding = Embedding(1000, 365, input_length=10)
+t = embedding(input_query)
+t = LSTM(units=80)(t)
+t = Dense(10)(t)
+model = Model(inputs=input_query, outputs=t)
+model.compile(optimizer='adadelta', loss='mean_squared_error')
+np_in = np.random.randint(800, size=[7, 10])
+np_o = np.random.random([7, 10])
+model.fit(np_in, np_o, batch_size=3, epochs=1, shuffle=True)
+print('finish')
 
 flags = tf.flags
 
@@ -53,6 +67,18 @@ flags.DEFINE_string("vocab_file", None,
 flags.DEFINE_string(
     "output_dir", None,
     "The output directory where the model checkpoints will be written.")
+
+flags.DEFINE_string(
+    "output_file_name", None,
+    "The name of output file.")
+
+flags.DEFINE_string(
+    "test_file_name", None,
+    "The name of test file.")
+
+flags.DEFINE_string(
+    "train_file_name", None,
+    "The name of train file.")
 
 ## Other parameters
 
@@ -87,10 +113,10 @@ flags.DEFINE_integer("predict_batch_size", 8, "Total batch size for predict.")
 
 flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
 
-flags.DEFINE_float("dropout_rate", 0.1, "The initial drop out rate.")
-
 flags.DEFINE_float("num_train_epochs", 3.0,
                    "Total number of training epochs to perform.")
+
+flags.DEFINE_float("dropout_rate", 0.1, "The initial drop out rate.")
 
 flags.DEFINE_float(
     "warmup_proportion", 0.1,
@@ -210,13 +236,13 @@ class DataProcessor(object):
       return lines
 
 
-class MsparsProcessor(DataProcessor):
-  """Processor for the CoLA data set (GLUE version)."""
+class MSParSRelationProcessor(DataProcessor):
+  """Processor for the MRPC data set (GLUE version)."""
 
   def get_train_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+        self._read_tsv(os.path.join(data_dir, FLAGS.train_file_name)), "train")
 
   def get_dev_examples(self, data_dir):
     """See base class."""
@@ -226,21 +252,22 @@ class MsparsProcessor(DataProcessor):
   def get_test_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+        self._read_tsv(os.path.join(data_dir, FLAGS.test_file_name)), "test")
 
   def get_labels(self):
     """See base class."""
-    return ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]
+    return ["0", "1"]
 
   def _create_examples(self, lines, set_type):
     """Creates examples for the training and dev sets."""
     examples = []
     for (i, line) in enumerate(lines):
       guid = "%s-%s" % (set_type, i)
-      text_a = tokenization.convert_to_unicode(line[0])
-      label = tokenization.convert_to_unicode(line[1])
+      text_a = tokenization.convert_to_unicode(line[1])
+      text_b = tokenization.convert_to_unicode(line[2])
+      label = tokenization.convert_to_unicode(line[0])
       examples.append(
-          InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+          InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
 
 
@@ -483,7 +510,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
     per_example_loss = -tf.reduce_sum(one_hot_labels * log_probs, axis=-1)
     loss = tf.reduce_mean(per_example_loss)
 
-    return (loss, per_example_loss, logits, probabilities, tf.argmax(probabilities, -1), labels)
+    return loss, per_example_loss, logits, probabilities, tf.argmax(probabilities, -1)
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
@@ -510,9 +537,9 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    (total_loss, per_example_loss, logits, probabilities, predict, labels) = create_model(
+    (total_loss, per_example_loss, logits, probabilities, predict) = create_model(
         bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
-        num_labels, use_one_hot_embeddings, dropout_rate=FLAGS.dropout_rate)
+        num_labels, use_one_hot_embeddings, FLAGS.dropout_rate)
 
     tvars = tf.trainable_variables()
     initialized_variable_names = {}
@@ -572,8 +599,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={"probabilities": probabilities,
-                       'predict': predict,
-                       'labels': labels
+                       "predict": predict,
+                       "gold": label_ids
                        },
           scaffold_fn=scaffold_fn)
     return output_spec
@@ -657,7 +684,7 @@ def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   processors = {
-      "mspars": MsparsProcessor
+      'mspars': MSParSRelationProcessor
   }
 
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
@@ -826,18 +853,18 @@ def main(_):
 
     result = estimator.predict(input_fn=predict_input_fn)
 
-    output_predict_file = os.path.join(FLAGS.output_dir, "test_results.json")
+    output_predict_file = os.path.join(FLAGS.output_dir, FLAGS.output_file_name)
     probabilities = []
     predict = []
-    labels = []
+    gold = []
     for (i, prediction) in enumerate(result):
         probabilities.append(prediction["probabilities"])
         predict.append(prediction['predict'])
-        labels.append(prediction['labels'])
-    with codecs.open(output_predict_file, "w") as writer:
+        gold.append(prediction['gold'])
+    with codecs.open(output_predict_file, "w", encoding='utf8') as writer:
         probabilities = np.array(probabilities).tolist()
         predict = np.array(predict).tolist()
-        labels = np.array(labels).tolist()
+        labels = np.array(gold).tolist()
         json.dump((probabilities, predict, labels), writer, indent=2)
 
 
@@ -847,6 +874,4 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
-  gpu_options = tf.GPUOptions(allow_growth=True)
-  sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
   tf.app.run()
