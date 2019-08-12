@@ -28,12 +28,11 @@ CLASS_DROPOUT_RATE=0.1
 ENTITY_DROPOUT_RATE=0.1
 ENTITY_LABELING_WEIGHT=2.0
 PREDICT_BATCH_SIZE=32
-python -m utils.model.mspars_multi_task --predict_batch_size=$PREDICT_BATCH_SIZE --task_name=mspars --do_train=true --do_predict=true --data_dir=$DATA_DIR --vocab_file=$BERT_BASE_DIR/vocab.txt --bert_config_file=$BERT_BASE_DIR/bert_config.json --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt --max_seq_length=$MAX_LENGTH --entity_weight=$ENTITY_LABELING_WEIGHT --class_dropout=$CLASS_DROPOUT_RATE --entity_dropout=$ENTITY_DROPOUT_RATE --train_batch_size=$BATCH_SIZE --learning_rate=$LEARNING_RATE --num_train_epochs=$EPOCH_NUM --output_dir=$NEW_OUTPUT_DIR
+python -m src.multitask.mspars_multi_task --predict_batch_size=$PREDICT_BATCH_SIZE --task_name=mspars --do_train=true --do_predict=true --data_dir=$DATA_DIR --vocab_file=$BERT_BASE_DIR/vocab.txt --bert_config_file=$BERT_BASE_DIR/bert_config.json --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt --max_seq_length=$MAX_LENGTH --entity_weight=$ENTITY_LABELING_WEIGHT --class_dropout=$CLASS_DROPOUT_RATE --entity_dropout=$ENTITY_DROPOUT_RATE --train_batch_size=$BATCH_SIZE --learning_rate=$LEARNING_RATE --num_train_epochs=$EPOCH_NUM --output_dir=$NEW_OUTPUT_DIR
 
 RESULT=output/multitask/labeled_results.json
 TOKEN=output/multitask/token_split.txt
 ELABEL2ID=output/multitask/label2id_reference.json
-EANALYSIS=analysis/multitask/entity_analysis
-TLABEL2ID=data/json/label2id.json
-TANALYSIS=analysis/multitask/class_analysis
-python -m utils.post.deal_with_tr -r $RESULT -t $TOKEN -l $ELABEL2ID -a $EANALYSIS -d $TLABEL2ID -s $TANALYSIS
+SLABEL2ID=data/json/label2id.json
+ANALYSIS=analysis/multi_task
+python -m src.multitask.deal_with_multi_task -r $RESULT -t $TOKEN -e $ELABEL2ID -s $SLABEL2ID -a $ANALYSIS

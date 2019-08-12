@@ -32,7 +32,7 @@ def get_entity_labeling(item):
 
 
 '''
-get multi classes json file, and generate train file and test file(from dev file) for multitask model
+get multi classes json file, and generate train file and test file(from dev file) for multi-task model
 '''
 def generate_multi_task_data(source_train, source_dev, target_train, target_test, label2id, seed):
     with codecs.open(source_train, 'r', encoding='utf8') as f:
