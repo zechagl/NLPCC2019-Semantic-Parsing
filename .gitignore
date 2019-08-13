@@ -117,3 +117,7 @@ dmypy.json
 
 # Pycharm project settings
 .idea
+
+# data and output
+data/
+output/

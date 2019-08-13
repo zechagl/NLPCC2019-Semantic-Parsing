@@ -18,6 +18,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tensorflow as tf
+hello=tf.constant('HelloWorld!') 
+sess=tf.Session()
+print(sess.run(hello))
+print('finish')
+
+
+
 import collections
 import csv
 import os
@@ -28,21 +36,6 @@ import tensorflow as tf
 import codecs
 import json
 import numpy as np
-import sys
-from keras.layers import Input, Embedding, LSTM, Dense
-from keras.models import Model
-
-input_query = Input(shape=(10,), dtype='int32')
-embedding = Embedding(1000, 365, input_length=10)
-t = embedding(input_query)
-t = LSTM(units=80)(t)
-t = Dense(10)(t)
-model = Model(inputs=input_query, outputs=t)
-model.compile(optimizer='adadelta', loss='mean_squared_error')
-np_in = np.random.randint(800, size=[7, 10])
-np_o = np.random.random([7, 10])
-model.fit(np_in, np_o, batch_size=3, epochs=1, shuffle=True)
-print('finish')
 
 flags = tf.flags
 
@@ -247,7 +240,7 @@ class MSParSRelationProcessor(DataProcessor):
   def get_dev_examples(self, data_dir):
     """See base class."""
     return self._create_examples(
-        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+        self._read_tsv(os.path.join(data_dir, FLAGS.test_file_name)), "dev")
 
   def get_test_examples(self, data_dir):
     """See base class."""
@@ -875,3 +868,4 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
   tf.app.run()
+
