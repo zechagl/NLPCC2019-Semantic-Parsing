@@ -39,31 +39,33 @@ python -m src.multitask.deal_with_multi_task -r $RESULT -t $TOKEN -e $ELABEL2ID 
 
 
 EXEHOME=src/MERGEandSCORE/code
+DATAHOME=data
 cd ${EXEHOME}
 
 ###===== transform timestep2 v1 to v2 : merge entity-label results into timestep2 =====###
 python label_in_timestep2.py \
        -mode dev \
-       -input_path data/json/timestep2/dev_timestep2_v1.json \
-       -label_path data/output/multitask/dev_labeled_results.json \
-       -result_path data/json/timestep2/dev_timestep2_v2.json
+       -input_path ${DATAHOME}/json/timestep2/dev_timestep2_v1.json \
+       -label_path ${DATAHOME}/output/multitask/dev_labeled_results.json \
+       -result_path ${DATAHOME}/json/timestep2/dev_timestep2_v2.json
 
 python label_in_timestep2.py \
        -mode test \
-       -input_path data/json/timestep2/test_timestep2_v1.json \
-       -label_path data/output/multitask/test_labeled_results.json \
-       -result_path  data/json/timestep2/test_timestep2_v2.json
+       -input_path ${DATAHOME}/json/timestep2/test_timestep2_v1.json \
+       -label_path ${DATAHOME}/output/multitask/test_labeled_results.json \
+       -result_path  ${DATAHOME}/json/timestep2/test_timestep2_v2.json
 
 ###===== transform timestep2 v2 to v3 : align the number of entities/values predicted =====###
 ###                                     with that in type_pred_pattern in timestep2 data   ###
 python entity_in_timestep2.py \
        -mode dev \
-       -input_path data/json/timestep2/dev_timestep2_v2.json \
-       -label_path data/output/multitask/dev_labeled_results.json \
-       -result_path data/json/timestep2/dev_timestep2_v3.json
+       -input_path ${DATAHOME}/json/timestep2/dev_timestep2_v2.json \
+       -label_path ${DATAHOME}/output/multitask/dev_labeled_results.json \
+       -result_path ${DATAHOME}/json/timestep2/dev_timestep2_v3.json
 
 python entity_in_timestep2.py \
        -mode test \
-       -input_path data/json/timestep2/test_timestep2_v2.json \
-       -label_path data/output/multitask/test_labeled_results.json \
-       -result_path data/json/timestep2/test_timestep2_v3.json
+       -input_path ${DATAHOME}/json/timestep2/test_timestep2_v2.json \
+       -label_path ${DATAHOME}/output/multitask/test_labeled_results.json \
+       -result_path ${DATAHOME}/json/timestep2/test_timestep2_v3.json
+       
