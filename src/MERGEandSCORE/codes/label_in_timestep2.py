@@ -117,7 +117,7 @@ def labelfordata(input, labels, mode):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='label_in_timestep2.py')
-    parser.add_argument('-mode', default='dev', help="""dev or test""")
+    parser.add_argument('-mode', default='dev',choices=['dev', 'test'])
     parser.add_argument('-input_path', default='', help="""input timestep2-v1 in json""")
     parser.add_argument('-label_path', default='', help="""input label result in json""")
     parser.add_argument('-result_path', default='', help="""output timestep2-v2 in json""")
