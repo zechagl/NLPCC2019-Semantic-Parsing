@@ -344,7 +344,7 @@
 -todo1to3 0.4 -todo1to3_aggregation 0.5 -todo1to3_singlerelation 2 -todo1to3_superlative0 15 -todo1to3_multichoice 0.25
 -cover2todo13 0.01
 -loss2others 15
--loss2others 1.5
+-loss2others 1.5  ## with cover
 ```
 * todo3
 ```
