@@ -18,7 +18,10 @@ def score(r, e, d, f):
             r = 'r-' + r
         elif r.startswith('r-mso:'):
             r = r.lstrip('r-')
-        s = d[str(f)][e][r]
+        try:
+            s = d[str(f)][e][r]
+        except:
+            s = 0.000000000000001
     return s
 
 def process(data, prediction, lgp_dict, dict_full):
@@ -176,11 +179,14 @@ def process(data, prediction, lgp_dict, dict_full):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='merge_dev.py')
+    parser = argparse.ArgumentParser(description='merge.py')
+    parser.add_argument('-mode', require=True, choices=['dev', 'test'])
     parser.add_argument('-input_path', default='', help="""input timestep2-v3 in json""")
     parser.add_argument('-pred_path', default='', help="""input logical form prediction in json""")
     parser.add_argument('-result_path', default='', help="""output merge in json""")
-    parser.add_argument('-loss_path', default=[], help="""loss results in json""")
+    parser.add_argument('-loss_path', default=[], nargs='+', help="""loss results in json""")
+    parser.add_argument('-index_path', default=[], nargs='+', 
+                        help="""index files (score of entites and predicates) in json""")
     opt = parser.parse_args()
 
     data = json_load(opt.input_path)
@@ -196,9 +202,8 @@ if __name__ == '__main__':
     dev = [sample[1][1] for sample in dev]
 
     dict_full = {}
-    dict_full['0'] = json_load('index/dev_0_full.json')
-    dict_full['1'] = json_load('index/dev_1_full.json')
-    x, y = 0, 0
+    dict_full['0'] = json_load(opt.index_path[0])
+    dict_full['1'] = json_load(opt.index_path[1])
     dict_acc = {}
     for index,sample in enumerate(data):
         prediction = predictions[index]
@@ -211,20 +216,25 @@ if __name__ == '__main__':
             data[index][k] = v
 
     # merge loss results into data
+    dict_full = {}
     loss1 = json_load(opt.loss_path[0])
     loss2 = json_load(opt.loss_path[1])
     loss3 = json_load(opt.loss_path[2])
-    loss1 = loss1[0]
-    loss2 = loss2[0]
-    loss3 = loss3[0]
+    loss1, loss2, loss3 = loss1[0], loss2[0], loss3[0]
     cnt = 0
-
     for index, sample in enumerate(data):
         logical_pred = sample['logical_pred']
-        cnt += 1
         for i,lp in enumerate(logical_pred):
             logical_pred[i].append([loss1[cnt], loss2[cnt], loss3[cnt]])
             cnt += 1
         data[index]['logical_pred'] = logical_pred
-
+        if 'logical_pred_0' in sample and 'logical_pred_1' in sample:
+            len1 = len(sample['logical_pred_0'])
+            len2 = len(sample['logical_pred_1'])
+            length = len1 * len2
+            v = []
+            for i in range(length):
+                v.append([loss1[cnt], loss2[cnt], loss3[cnt]])
+                cnt += 1
+            data[index]['loss_for_split'] = v
     json_dump(data, opt.result_path)
