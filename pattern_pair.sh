@@ -35,3 +35,26 @@ cd src/patternpair
 
 time python merge.py
 time python comb.py
+
+
+EXEHOME=src/MERGEandSCORE/code
+DATAHOME=data
+cd ${EXEHOME}
+
+###===== produce the merge files : merge the entity-relation scores into data =====###
+###                                merge the loss results into data                ###
+python merge.py \
+       -mode dev \
+       -input_path ${DATAHOME}/json/timestep2/dev_timestep2_v3.json \
+       -pred_path ${DATAHOME}/json/pattern_pair_merge_5_dev.json \
+       -result_path ${DATAHOME}/json/timestep3/dev_timestep3.json \
+       -loss_path ${DATAHOME}/output/pointer/dev_epoch20.json data/output/pointer/dev_epoch26.json data/output/pointer/dev_epoch29.json \
+       -index_path ${DATAHOME}/json/dev_0_dict.json data/json/dev_1_dict.json
+
+python merge.py \
+       -mode test \
+       -input_path ${DATAHOME}/json/timestep2/test_timestep2_v3.json \
+       -pred_path ${DATAHOME}/json/pattern_pair_merge_5_test.json \
+       -result_path ${DATAHOME}/json/timestep3/test_timestep3.json \
+       -loss_path ${DATAHOME}/output/pointer/test_epoch20.json data/output/pointer/test_epoch26.json data/output/pointer/test_epoch29.json \
+       -index_path ${DATAHOME}/json/test_0_dict.json data/json/test_1_dict.json
