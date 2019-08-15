@@ -49,7 +49,8 @@ python merge.py \
        -pred_path ${DATAHOME}/json/pattern_pair_merge_5_dev.json \
        -result_path ${DATAHOME}/json/timestep3/dev_timestep3.json \
        -loss_path ${DATAHOME}/output/pointer/dev_epoch20.json data/output/pointer/dev_epoch26.json data/output/pointer/dev_epoch29.json \
-       -index_path ${DATAHOME}/json/dev_0_dict.json data/json/dev_1_dict.json
+       -index_path ${DATAHOME}/json/dev_0_dict.json data/json/dev_1_dict.json \
+       -qu2logical ${DATAHOME}/json/qu2logical.json
 
 python merge.py \
        -mode test \
@@ -57,4 +58,5 @@ python merge.py \
        -pred_path ${DATAHOME}/json/pattern_pair_merge_5_test.json \
        -result_path ${DATAHOME}/json/timestep3/test_timestep3.json \
        -loss_path ${DATAHOME}/output/pointer/test_epoch20.json data/output/pointer/test_epoch26.json data/output/pointer/test_epoch29.json \
-       -index_path ${DATAHOME}/json/test_0_dict.json data/json/test_1_dict.json
+       -index_path ${DATAHOME}/json/test_0_dict.json data/json/test_1_dict.json \
+       -qu2logical ${DATAHOME}/json/qu2logical.json
