@@ -27,6 +27,9 @@ def merge_json(path, save_path):
         json.dump((probabilities, predict, gold), f, indent=2)
 
 
+'''
+ensemble models with different epoch
+'''
 def merge(mode):
     files = ['7epoch_base/7_base_%s.json', '7epoch_udf/7_udf_%s.json', 'ep6/ep6_%s.json', 'ep9/ep9_%s.json', 'epc/epc_%s.json']
     files = list(map(lambda x: '../../output/patternpair/' + x % mode, files))
@@ -56,11 +59,11 @@ def merge(mode):
 
 
 def main():
-    #argparser = argparse.ArgumentParser('merge json')
-    #argparser.add_argument('-p', '--path', help='path of json files to be merged')
-    #argparser.add_argument('-f', '--file', help='merged json file')
-    #args = argparser.parse_args()
-    #merge_json(args.path, args.file)
+    # argparser = argparse.ArgumentParser('merge json')
+    # argparser.add_argument('-p', '--path', help='path of json files to be merged')
+    # argparser.add_argument('-f', '--file', help='merged json file')
+    # args = argparser.parse_args()
+    # merge_json(args.path, args.file)
     merge('dev')
 
 

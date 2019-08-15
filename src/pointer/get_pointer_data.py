@@ -8,8 +8,11 @@ import argparse
 import os
 
 
-def get_pointer_data(input_file, output_file):
-    with codecs.open('merge.merged_7_test_todo3.json', 'r', encoding='utf8') as f:
+'''
+get data for Pointer from timestep3 file
+'''
+def get_pointer_data(t3_file, output_file):
+    with codecs.open(t3_file, 'r', encoding='utf8') as f:
         data = json.load(f)
 
     new_data = []
@@ -38,5 +41,17 @@ def get_pointer_data(input_file, output_file):
 
         new_data.append([question, new_logical])
 
-    with codecs.open('merge_7_test.json', 'w', encoding='utf8') as f:
+    with codecs.open(output_file, 'w', encoding='utf8') as f:
         json.dump(new_data, f, indent=2)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="get data for Pointer from timestep3 file")
+    parser.add_argument('-t', '--timestep', help='timestep3 file')
+    parser.add_argument('-o', '--output', help='output file')
+    args = parser.parse_args()
+    get_pointer_data(args.timestep, args.output)
+
+
+if __name__ == '__main__':
+    main()

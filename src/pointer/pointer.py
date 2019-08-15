@@ -7,7 +7,7 @@ import codecs
 import keras.backend.tensorflow_backend as T
 import tensorflow as tf
 sys.path.append(os.path.abspath('..'))
-from config.basic import Config
+from src.pointer.basic import Config
 import json
 from keras.models import Model
 from keras.layers import Input, Dense, LSTM, Embedding, Bidirectional, Concatenate, Dot, Activation, Lambda, Add
@@ -69,7 +69,7 @@ class s2s():
         cnt_logical = Counter()
 
         # get training data
-        with codecs.open('new_train.json', 'r', encoding='utf8') as f:
+        with codecs.open('data/json/train.json', 'r', encoding='utf8') as f:
             train = json.load(f)
 
             for item in tqdm(train, 'reading train'):
@@ -85,7 +85,7 @@ class s2s():
                 cnt_logical.update(new_logical)
                 cnt_question.update(new_logical)
 
-        with codecs.open('new_dev.json', 'r', encoding='utf8') as f:
+        with codecs.open('data/json/dev.json', 'r', encoding='utf8') as f:
             test = json.load(f)
 
             for item in tqdm(test, 'reading dev'):
@@ -101,7 +101,7 @@ class s2s():
                 cnt_logical.update(new_logical)
                 cnt_question.update(new_logical)
 
-        with codecs.open('new_test.json', 'r', encoding='utf8') as f:
+        with codecs.open('data/json/test.json', 'r', encoding='utf8') as f:
             test = json.load(f)
 
             for item in tqdm(test, 'reading test'):
@@ -134,7 +134,7 @@ class s2s():
 #            if word in word_dict:
 #                self.embedding_weights[index] = word_dict[word]
 
-        with codecs.open('word2index_new.pkl', 'rb') as f:
+        with codecs.open('data/pointer/word2index.pkl', 'rb') as f:
             # pickle.dump((self.word2index, self.embedding_weights), f)
             self.word2index, self.embedding_weights = pickle.load(f)
 
@@ -208,16 +208,17 @@ class s2s():
 
     def train(self):
         self.model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
-        self.model.fit_generator(self.generator(self.train_X, self.train_Y, True), validation_data=self.generator(self.test_X, self.test_Y, True), validation_steps=int(len(self.test_X) / self.config.batch_size), steps_per_epoch=int(len(self.train_X) / self.config.batch_size), epochs=self.config.epoch_num, callbacks=[ModelCheckpoint('../../pointer_model/pointer-{epoch:02d}-{val_loss:.4f}.hdf5', verbose=1, save_best_only=False, period=1, save_weights_only=True)])
+        self.model.fit_generator(self.generator(self.train_X, self.train_Y, True), validation_data=self.generator(self.test_X, self.test_Y, True), validation_steps=int(len(self.test_X) / self.config.batch_size), steps_per_epoch=int(len(self.train_X) / self.config.batch_size), epochs=self.config.epoch_num, callbacks=[ModelCheckpoint('output/pointer/{epoch:02d}-{val_loss:.4f}.hdf5', verbose=1, save_best_only=False, period=1, save_weights_only=True)])
 
     def load(self, m):
-        self.model.load_weights('../../pointer_model/pointer-%s-0.01.hdf5' % m)
+        self.model.load_weights('output/pointer/%s' % m)
 
 
 parser = argparse.ArgumentParser(description='get loss')
 parser.add_argument('-m', '--model', help='model')
-parser.add_argument('-l', '--lossdata', help='loss data file')
+parser.add_argument('-d', '--data', help='data file')
 parser.add_argument('-g', '--gpu', help='gpu')
+parser.add_argument('-o', '--output', help='output file')
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 c = tf.ConfigProto()
@@ -231,7 +232,7 @@ model.get_training_model()
 model.load(args.model)
 results = np.zeros(1)
 
-with codecs.open('merge_%s_test.json' % args.lossdata, 'r', encoding='utf8') as f:
+with codecs.open(args.data, 'r', encoding='utf8') as f:
     loss_data = json.load(f)
 
 cnt = 0
@@ -266,7 +267,6 @@ for X, Y in tqdm(loss_data):
             for k in range(model.config.max_length):
                 new_out[i * batch_size + j, k] = np.dot(-np.log(output[j, k]), test_Y_onehot[j][k])
 
-    # mean = np.mean(new_out, axis=-1)
     for i in range(len(Y)):
         mean[i] = 0
 
@@ -275,19 +275,10 @@ for X, Y in tqdm(loss_data):
 
         mean[i] /= lengths[i]
 
-    #if min(mean[1:]) == mean[0]:
-    #    cnt += 1
-
-    # loss = tf.keras.losses.categorical_crossentropy(tf.convert_to_tensor(test_Y_onehot), tf.convert_to_tensor(output))
-    #
-    # loss_array = loss.eval(session=session)
     results = np.concatenate((results, mean))
 
 results = results[1:]
 results = results.tolist()
-print(cnt)
-print(len(loss_data))
-print('acc:%.4f' % (cnt / len(loss_data)))
 
-with codecs.open('results_test_merge_%s_model_%s.json' % (args.lossdata, args.model), 'w', encoding='utf8') as f:
+with codecs.open(args.output, 'w', encoding='utf8') as f:
     json.dump([results], f, indent=2)
