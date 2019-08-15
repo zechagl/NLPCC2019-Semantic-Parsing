@@ -10,14 +10,14 @@ json_load = lambda x:json.load(codecs.open(x, 'r', encoding='utf-8'))
 
 
 def loss_score(prediction):
+    '''根据seq2seq模型的loss数据计算loss-score'''
     pred = prediction[-1]
-    if pred == -1:
-        s = 0.5
-    else:
-        s = 1 - (pred[0] + pred[1] + pred[2]) / 3
+    norm = 8    # 具体需根据loss数值来定 --> normalize
+    s = 1 -((pred[0] + pred[1] + pred[2]) / 3) / norm
     return s
 
 def get_cover_prob(question_words, logical):
+    '''计数预测结果对源question中的词的覆盖数'''
     question_words = [w for w in question_words if not (w.startswith('ENTITY') or w.startswith('VALUE'))]
     question_words = [w for w in question_words if w not in ['|||']]
     logical_words = [w for w in logical.split(' ') if w.startswith('mso:') or w.startswith('r-mso:') or w.startswith('dev:')]
@@ -31,20 +31,27 @@ def get_cover_prob(question_words, logical):
             cnt += 1
     return cnt
 
-def return_to_raw(logical, type, id):
+def return_to_raw(logical, type, id, mode):
+    '''将之前转换（预处理）过的multi-turn-predicate和multi-choice这两个类的logical form形式复原'''
     if type == 'multi-turn-predicate':
         assert '|||' in logical
         pos = logical.index('|||')
         logical = logical[:pos] + [')'] + logical[pos:]
-    if type == 'multi-choice' and id in [814, 1591, 2108, 2265, 2273, 3048, 6186, 6410, 6458, 6608, 6681, 6780, 7511, 7541, 7543, 7655, 7709, 7884]:
-        logical[7], logical[8] = logical[8], logical[7]
-        if logical[6].startswith('mso'):
-            logical[6] = 'r-' + logical[6]
-        elif logical[6].startswith('r-mso'):
-            logical[6] = logical[6][2:]
+    if mode == 'dev':
+        if type == 'multi-choice' and id in [814, 1591, 2108, 2265, 2273, 3048, 6186, 6410, 6458, 6608, 6681, 6780, 7511, 7541, 7543, 7655, 7709, 7884]:
+            logical[7], logical[8] = logical[8], logical[7]
+            if logical[6].startswith('mso'):
+                logical[6] = 'r-' + logical[6]
+            elif logical[6].startswith('r-mso'):
+                logical[6] = logical[6][2:]
     return logical
 
 def filter_error(sample):
+    '''计算三种错误率（ f3属于(f2并f1) ）
+    f1：type预测错误
+    f2：entity预测错误
+    f3：logical form预测错误
+    '''
     f1, f2, f3 = True, True, False
     # type judge
     if sample['type'] != sample['type_pred']:
@@ -86,19 +93,14 @@ def filter_error(sample):
     return [f1, f2, f3]
 
 def score(s1, s2, s3, s4, type, opt):
+    '''根据四种分数：todo1，todo3，loss和覆盖词数计算总分数'''
     tmp_s2 = 1
     for x in s2:
         tmp_s2 *= x
     cnt2 = len(s2)
     s2 = tmp_s2
-    #s2 = s2/cnt2 if cnt2 != 0 else 1
     s2 = math.pow(s2, 1/cnt2) if cnt2 != 0 else 1
-    # if type in ['aggregation']:
-    #     s1 = math.log(s1)
-    #     s2 = math.log(s2)
     s1 = -100+s1 if s1 < 0.5 else s1
-    # if s2 > 0.8:
-    #     s2 = 1
     para = opt.todo1to3
     if type == 'aggregation':
         para = opt.todo1to3_aggregation
@@ -109,31 +111,35 @@ def score(s1, s2, s3, s4, type, opt):
     elif type == 'multi-choice':
         para = opt.todo1to3_multichoice
     para2 = opt.cover2todo13
-    # if use_s4:
-    #     para = float(sys.argv[9])
-    #     s = s1 + s4 * para
-    # else:
     s = s1 + s2 * para
     s = s/(1 + para) + para2 * s3
     para3 = opt.loss2others
-    if type == 'aggregation':
-        para3 = opt.loss2others_aggregation
     s = s/(1 + para2) + s4 * para3
     return s, tmp_s2
 
-def process(sample, multi_choice_cnt, opt):
-    flag = filter_error(sample)
+def process(sample, opt):
+    '''
+    计算分数选出分数最高者作为最终预测结果
+    分为dev和test两种模式处理，dev因需要得到错误率和错误原因，故需更多计算
+    '''
+    if opt.mode == 'dev':
+        flag = filter_error(sample)
+
     type_pred = sample['type_pred']
     predlist = sample['logical_pred']
-    if type_pred in ['multi-turn-entity']:
+    ### ===== 将mult-turn-entity这种需要预测两种句子的两组结果（todo3的结果）进行排列组合 ===== ###
+    if type_pred in ['multi-turn-entity'] and 'logical_pred_1' in sample and 'logical_pred_0' in sample:
         q1list = sample['logical_pred_0']
         q2list = sample['logical_pred_1']
+        loss_for_split = sample['loss_for_split']
+        cnt = 0
         for q1 in q1list:
             for q2 in q2list:
                 LP = q1[0] + ' ||| ' + q2[0]
                 S = q1[1] * q2[1]
                 ER = q1[2] + q2[2]
-                LS = -1
+                LS = loss_for_split[cnt]
+                cnt += 1
                 predlist.append([LP, S, ER, LS])
         predlist_dict={}
         for lp,s,er,ls in predlist:
@@ -141,7 +147,7 @@ def process(sample, multi_choice_cnt, opt):
                 predlist_dict[lp] = [0, er, ls]
             predlist_dict[lp][0] += s
         predlist = [[k, predlist_dict[k][0], predlist_dict[k][1], predlist_dict[k][2]] for k in predlist_dict]
-    # 结合TODO1和TODO3
+    ### ===== 计算总分数 ===== ###
     target, max_score = -1, -100000000000
     for index, pred in enumerate(predlist):
         s1 = pred[1]
@@ -149,31 +155,43 @@ def process(sample, multi_choice_cnt, opt):
         s3 = get_cover_prob(sample['question_pre_pattern'], pred[0])
         s4 = loss_score(pred)
         final_score, s2 = score(s1, s2, s3, s4, type_pred, opt)
-        predlist[index].append(s2)
+
+        predlist[index] += [s2, s3, s4]
         if final_score > max_score:
             max_score = final_score
             target = index
     logical_final_pred = predlist[target][0]
-    # 两类分数的排名
-    if all(flag):
-        s1_list = [pred[1] for pred in predlist]
-        s2_list = [pred[-1] for pred in predlist]
-        lp_list = [pred[0] for pred in predlist]
-        pos = lp_list.index(' '.join(sample['logical']))
-        s1, s2 = s1_list[pos], s2_list[pos]
-        s1_list.sort(key=lambda x:-x)
-        s2_list.sort(key=lambda x:-x)
-        rk1, rk2 = s1_list.index(s1) + 1, s2_list.index(s2) + 1
-        h1, h2 = s1_list[0], s2_list[0]
+    
+    if opt.mode == 'dev':
+        ### ===== 统计预测情况（针对dev） ===== ###
+        ### ===== 四种分数的排名 ===== ###
+        if all(flag):
+            s1_list = [pred[1] for pred in predlist]
+            s2_list = [pred[4] for pred in predlist]
+            s3_list = [pred[5] for pred in predlist]
+            s4_list = [pred[6] for pred in predlist]
+            lp_list = [pred[0] for pred in predlist]
+            pos = lp_list.index(' '.join(sample['logical']))
+            s1, s2, s3, s4 = s1_list[pos], s2_list[pos], s3_list[pos], s4_list[pos]
+            s1_list.sort(key=lambda x:-x)
+            s2_list.sort(key=lambda x:-x)
+            s3_list.sort(key=lambda x:-x)
+            s4_list.sort(key=lambda x:-x)
+            rk1, rk2, rk3, rk4 = s1_list.index(s1) + 1, s2_list.index(s2) + 1, s3_list.index(s3) + 1, s4_list.index(s4) + 1
+            h1, h2, h3, h4 = s1_list[0], s2_list[0], s3_list[0], s4_list[0]
+        else:
+            rk1, rk2, rk3, rk4 = -1, -1, -1, -1
+            s1, s2, s3, s4 = 0, 0, 0, 0
+            h1, h2, h3, h4 = 0, 0, 0, 0
+        return logical_final_pred, flag, (rk1, rk2, rk3, rk4), (s1, s2, s3, s4), (h1, h2, h3, h4)
     else:
-        rk1, rk2 = -1, -1
-        s1, s2 = 0, 0
-        h1, h2 = 0, 0
-    return logical_final_pred, flag, (rk1, rk2), (s1, s2), (h1, h2)
+        return logical_final_pred
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='score_merge_dev.py')
+    ### ===== Prepare Options ===== ###
+    parser = argparse.ArgumentParser(description='score_merge.py')
+    parser.add_argument('-mode', require=True, choices=['dev', 'test'])
     parser.add_argument('-input_path', default='', help="""input timestep2-merge in json""")
     parser.add_argument('-result_path', default='', help="""output in txt""")
     parser.add_argument('-error_path', default='', help="""error samples in txt""")
@@ -184,30 +202,43 @@ if __name__ == '__main__':
     parser.add_argument('-todo1to3_multichoice', type=float, help="""TODO1 : TODO3 for multi-choice""")
     parser.add_argument('-cover2todo13', type=float, help="""cover-score : (TODO1 & TODO3)""")
     parser.add_argument('-loss2others', type=float, help="""loss-score : [cover-score & (TODO1 & TODO3)]""")
-    parser.add_argument('-loss2others_aggregation', type=float,
-                        help="""loss-score : [cover-score & (TODO1 & TODO3)] for aggregation""")
+    
     opt = parser.parse_args()
 
+    ### ===== load待预测数据，准备相关变量用于记录结果 ===== ###
     samples = json_load(opt.input_path)
-    result_filename = opt.result_path
-    error_filename = opt.error_path
+    result_filename, error_filename = opt.result_path, opt.error_path
     x, y = 0, 0
     dict_acc = {}
     dict_acc['superlative'] = [0, 0]
-
+    not_in_cnt, not_type_cnt, not_entity_cnt, highest_loss = 0, 0, 0, 0
+    
     for index, sample in enumerate(samples):
         type = sample['type']
         id = sample['id']
         logical = sample['logical_raw']
-        logical_pred, flag, rank, scores, highest = process(sample, multi_choice_cnt, opt)
-
-        logical_pred = return_to_raw(logical_pred.split(' '), type, id)
-        logical_pred = ' '.join(logical_pred)
-
+        ### ===== 预测 ===== ###
+        if opt.mode == 'dev':
+            logical_pred, flag, rank, scores, highest = process(sample, opt)
+        else:
+            logical_pred = process(sample, opt)
+        ### ===== 统计错误情况（dev） ===== ###
+        if opt.mode == 'dev':
+            if not flag[2]:
+                not_in_cnt += 1
+            if not flag[0]:
+                not_type_cnt += 1
+            if not flag[1]:
+                not_entity_cnt += 1            
+        ### ===== 后处理还原 ===== ###
+        logical_pred = logical_pred.split(' ')
+        logical_pred = return_to_raw(logical_pred, type, id, opt.mode)
+        logical_pred = ' '.join(logical_pred)        
+        ### ===== 生成最终结果 ===== ###
         entity_pred = sample['entity_pred']
         print_entity_pred = []
-
-        for i,en in enumerate(entity_pred):
+        for i, en in enumerate(entity_pred):
+            ### ===== 将entity转换为相应的单词 ===== ###
             txt, ty, rg, q = en['text'], en['type'], en['range'], en['q']
             if q == '@Q2':
                 pos = sample['question'].index('|||')
@@ -222,6 +253,7 @@ if __name__ == '__main__':
             for j in range(tmp_logical.count(en['text']) - 1):
                 print_entity_pred.append(txt)
         if sample['type_pred'] in ['superlative1', 'superlative2', 'superlative3', 'comparative']:
+            ### ===== 计算entity span（考虑-1等特殊情况） ===== ###
             pos = 8
             if sample['type_pred'] == 'superlative3':
                 pos = 15
@@ -258,6 +290,7 @@ if __name__ == '__main__':
                 if pep[2][0] > 500:
                     print_entity_pred[i][2][0] -= 1000
         for i,pep in enumerate(print_entity_pred):
+            ### ===== 得到entity span ===== ###
             txt = [pep[0], pep[1]]
             rg = pep[2]
             txt.append('[' + str(rg[0]) + ',' + str(rg[1]) + ']')
@@ -266,44 +299,69 @@ if __name__ == '__main__':
             txt = ' '.join(txt)
             print_entity_pred[i] = txt
         print_entity_pred = ' ||| '.join(print_entity_pred)
+        
+        ### ===== 记录结果 ===== ###
+        file = result_filename + '.all'
+        real_type = sample['type_pred']
+        if real_type.startswith('superlative'):
+            real_type = 'superlative'
+        if opt.mode == 'dev':
+            tmp_id_cnt_lll = 1
+        if type in ['single-relation', 'cvt'] or opt.mode == 'test':
+            with open(file, 'a', encoding='utf-8') as f:
+                f.write('<question id=' + str(tmp_id_cnt_lll) + '>\t' + ' '.join(sample['question']) + '\n')
+                f.write('<logical form id=' + str(tmp_id_cnt_lll) + '>\t' + logical_pred + '\n')
+                f.write('<parameters id=' + str(tmp_id_cnt_lll) + '>\t' + print_entity_pred + '\n')
+                f.write('<question type id=' + str(tmp_id_cnt_lll) + '>\t' + real_type + '\n')
+                f.write('==================================================\n')
+                if opt.mode == 'dev':
+                    tmp_id_cnt_lll += 1
 
-        file = 'results/' + result_filename + '.all'
-        ttt = sample['type_pred']
-        if ttt.startswith('superlative'):
-            ttt = 'superlative'
-        with open(file, 'a', encoding='utf-8') as f:
-            f.write('<question id=' + str(id) + '>\t' + ' '.join(sample['question']) + '\n')
-            f.write('<logical form id=' + str(id) + '>\t' + logical_pred + '\n')
-            f.write('<parameters id=' + str(id) + '>\t' + print_entity_pred + '\n')
-            f.write('<question type id=' + str(id) + '>\t' + ttt + '\n')
-            f.write('==================================================\n')
+        ### ===== 记录错误情况 ===== ###
+        if opt.mode == 'dev':
+            if type not in dict_acc:
+                dict_acc[type] = [0, 0]
+            if logical == logical_pred:
+                x += 1
+                dict_acc[type][0] += 1
+                if type.startswith('superlative'):
+                    dict_acc['superlative'][0] += 1
+            else:
+                if all(flag):
+                    filename_tmp = opt.input_path.split('/')
+                    filename_tmp = filename_tmp[-1]
+                    filename_tmp = filename_tmp.split('.')
+                    filename_tmp = '.'.join(filename_tmp[0:-1])
+                    file = error_filename + '.' + filename_tmp
+                    with open(file, 'a', encoding='utf-8') as f:
+                        f.write('<question>'.ljust(15) + ' '.join(sample['question']) + '\n')
+                        f.write('<logical>'.ljust(15) + logical + '\n')
+                        f.write('<prediction>'.ljust(15) + logical_pred + '\n')
+                        f.write('<scores>'.ljust(15) + 'TODO3: ' + str(round(scores[0]*100, 1)) + '(' + str(round(highest[0]*100, 1)) + '); TODO1: ' \
+                                                                + str(round(scores[1]*100, 1)) + '(' + str(round(highest[1]*100, 1)) + '); COVER: ' \
+                                                                + str(scores[2]) + '(' + str(highest[2]) + '); LOSS: ' \
+                                                                + str(round(scores[3], 6)) + '(' + str(round(highest[3], 6)) + '). \n')
+                        f.write('<score-rank>'.ljust(15) + 'TODO3: ' + str(rank[0]) + '; TODO1: ' + str(rank[1]) + '; ' \
+                                                        + 'COVER: ' + str(rank[2]) + '; LOSS: ' + str(rank[3]) + '.\n')
+                        f.write('==================================================\n')
 
-        if type not in dict_acc:
-            dict_acc[type] = [0, 0]
-        if logical == logical_pred:
-            x += 1
-            dict_acc[type][0] += 1
+            dict_acc[type][1] += 1
+            y += 1
             if type.startswith('superlative'):
-                dict_acc['superlative'][0] += 1
-        else:
-            if all(flag):
-                file = 'error/' + error_filename + '.' + type
-                with open(file, 'a', encoding='utf-8') as f:
-                    f.write('<question>'.ljust(15) + ' '.join(sample['question']) + '\n')
-                    f.write('<logical>'.ljust(15) + logical + '\n')
-                    f.write('<prediction>'.ljust(15) + logical_pred + '\n')
-                    f.write('<scores>'.ljust(15) + 'TODO3: ' + str(round(scores[0]*100, 1)) + '(' + str(round(highest[0]*100, 1)) + '); TODO1: ' \
-                                                             + str(round(scores[1]*100, 1)) + '(' + str(round(highest[1]*100, 1)) + ').' + '\n')
-                    f.write('<score-rank>'.ljust(15) + 'TODO3: ' + str(rank[0]) + '; TODO1: ' + str(rank[1]) + '.\n')
-                    f.write('==================================================\n')
+                dict_acc['superlative'][1] += 1
 
-        dict_acc[type][1] += 1
-        y += 1
-        if type.startswith('superlative'):
-            dict_acc['superlative'][1] += 1
 
-    print('overall', str(round(x/y*100, 2)))
-    dict_acc = [(k, v[0]/v[1]*100) for k,v in dict_acc.items()]
-    dict_acc.sort(key=lambda x:x[0])
-    for d in dict_acc:
-        print(d[0], str(round(d[1], 2)))
+    ### ===== 输出dev上的预测正确率情况 ===== ###
+    if opt.mode == 'dev':          
+        print(not_in_cnt / len(samples))
+        print(not_in_cnt / len(samples) - not_type_cnt / len(samples) - not_entity_cnt / len(samples))
+        print(not_type_cnt / len(samples))
+        print(not_entity_cnt / len(samples))
+
+        print('overall', str(round(x/y*100, 2)))
+        dict_acc = [(k, v[0]/v[1]*100) for k,v in dict_acc.items()]
+        dict_acc.sort(key=lambda x:x[0])
+        for d in dict_acc:
+            print(d[0], str(round(d[1], 2)))
+        
+        print('\n', highest_loss)
