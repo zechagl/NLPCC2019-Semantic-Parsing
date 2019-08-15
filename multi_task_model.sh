@@ -38,7 +38,7 @@ ANALYSIS=analysis/multi_task
 python -m src.multitask.deal_with_multi_task -r $RESULT -t $TOKEN -e $ELABEL2ID -s $SLABEL2ID -a $ANALYSIS
 
 
-EXEHOME=src/MERGEansSCORE/code
+EXEHOME=src/MERGEandSCORE/code
 cd ${EXEHOME}
 
 ###===== transform timestep2 v1 to v2 : merge entity-label results into timestep2 =====###
