@@ -313,7 +313,7 @@ def entity_num(data, prob, mode):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='entity_in_timestep2.py')
-    parser.add_argument('-mode', default='dev', help="""dev or test""")
+    parser.add_argument('-mode', default='dev', help=['dev', 'test'])
     parser.add_argument('-input_path', default='', help="""input timestep2-v2 in json""")
     parser.add_argument('-label_path', default='', help="""input label result in json""")
     parser.add_argument('-result_path', default='', help="""output timestep2-v3 in json""")
