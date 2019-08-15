@@ -337,3 +337,143 @@
         superlative3 100.0
         yesno 88.67
 ```
+
+#### final-version
+* setting
+```
+-todo1to3 0.4 -todo1to3_aggregation 0.5 -todo1to3_singlerelation 2 -todo1to3_superlative0 15 -todo1to3_multichoice 0.25
+-cover2todo13 0.01
+-loss2others 15
+-loss2others 1.5
+```
+* todo3
+```
+    overall 77.42
+    
+    aggregation 61.37
+    comparative 100.0
+    cvt 83.36
+    multi-choice 46.27
+    multi-constraint 91.13
+    multi-hop 96.03
+    multi-turn-answer 93.4
+    multi-turn-entity 81.94
+    multi-turn-predicate 84.0
+    single-relation 77.65
+    superlative 62.92
+    superlative0 56.88
+    superlative1 93.97
+    superlative2 100.0
+    superlative3 100.0
+    yesno 78.67
+```   
+
+* todo3 + todo1
+```
+    overall 85.99
+    
+    aggregation 74.28
+    comparative 100.0
+    cvt 86.59
+    multi-choice 48.51
+    multi-constraint 92.83
+    multi-hop 96.28
+    multi-turn-answer 93.4
+    multi-turn-entity 82.86
+    multi-turn-predicate 87.0
+    single-relation 90.21
+    superlative 75.28
+    superlative0 71.56
+    superlative1 93.97
+    superlative2 100.0
+    superlative3 100.0
+    yesno 89.33
+```
+
+* todo3 + todo1 + cover
+```
+    overall 86.03
+    
+    aggregation 74.28
+    comparative 100.0
+    cvt 86.59
+    multi-choice 48.51
+    multi-constraint 92.49
+    multi-hop 96.28
+    multi-turn-answer 93.4
+    multi-turn-entity 83.04
+    multi-turn-predicate 87.0
+    single-relation 90.29
+    superlative 75.28
+    superlative0 71.56
+    superlative1 93.97
+    superlative2 100.0
+    superlative3 100.0
+    yesno 89.33
+```
+
+* todo3 + cover
+```
+    overall 77.52
+    
+    aggregation 61.37
+    comparative 100.0
+    cvt 83.52
+    multi-choice 46.27
+    multi-constraint 90.78
+    multi-hop 96.03
+    multi-turn-answer 93.4
+    multi-turn-entity 82.03
+    multi-turn-predicate 85.0
+    single-relation 77.84
+    superlative 62.92
+    superlative0 56.88
+    superlative1 93.97
+    superlative2 100.0
+    superlative3 100.0
+    yesno 78.67
+```
+
+* todo3 + loss (20 + 29 + 32)
+```
+    overall 84.02
+    
+    aggregation 69.98
+    comparative 100.0
+    cvt 85.46
+    multi-choice 45.52
+    multi-constraint 91.81
+    multi-hop 95.77
+    multi-turn-answer 95.28
+    multi-turn-entity 81.67
+    multi-turn-predicate 89.0
+    single-relation 87.58
+    superlative 73.83
+    superlative0 70.24
+    superlative1 91.38
+    superlative2 100.0
+    superlative3 100.0
+    yesno 89.33
+```
+
+* todo3 + loss + todo1 + cover
+```
+    overall 86.86
+    
+    aggregation 76.16
+    comparative 100.0
+    cvt 86.59
+    multi-choice 47.76
+    multi-constraint 93.17
+    multi-hop 96.15
+    multi-turn-answer 94.34
+    multi-turn-entity 83.41
+    multi-turn-predicate 88.0
+    single-relation 90.74
+    superlative 78.73
+    superlative0 75.79
+    superlative1 93.1
+    superlative2 100.0
+    superlative3 100.0
+    yesno 90.33
+```
