@@ -181,19 +181,21 @@ def process(data, prediction, lgp_dict, dict_full):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='merge.py')
     parser.add_argument('-mode', require=True, choices=['dev', 'test'])
-    parser.add_argument('-input_path', default='', help="""input timestep2-v3 in json""")
-    parser.add_argument('-pred_path', default='', help="""input logical form prediction in json""")
-    parser.add_argument('-result_path', default='', help="""output merge in json""")
-    parser.add_argument('-loss_path', default=[], nargs='+', help="""loss results in json""")
-    parser.add_argument('-index_path', default=[], nargs='+', 
+    parser.add_argument('-input_path', require=True, help="""input timestep2-v3 in json""")
+    parser.add_argument('-pred_path', require=True, help="""input logical form prediction in json""")
+    parser.add_argument('-result_path', require=True, help="""output merge in json""")
+    parser.add_argument('-loss_path', require=True, default=[], nargs='+', help="""loss results in json""")
+    parser.add_argument('-index_path', require=True, default=[], nargs='+', 
                         help="""index files (score of entites and predicates) in json""")
+    parser.add_argument('-qu2logical', require=True, help="""dictionary of question : patter in json""")
+    parser.add_argument('-gold_logical_form', default='MSParS.dev', help="""raw file of development set""")
     opt = parser.parse_args()
 
     data = json_load(opt.input_path)
     predictions = json_load(opt.pred_path)
-    lgp_dict = json_load('index/qu2logical.json')
+    lgp_dict = json_load(opt.qu2logical)
 
-    with open('MSParS.dev', 'r', encoding='utf-8') as f:
+    with open(opt.gold_logical_form, 'r', encoding='utf-8') as f:
         dev = f.read()
     dev = dev.split('==================================================\n')
     dev = dev[0:-1]
