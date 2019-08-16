@@ -393,10 +393,10 @@ if __name__ == '__main__':
         dict_acc = [(k, v[0] / v[1] * 100) for k, v in dict_acc.items()]
         dict_acc.sort(key=lambda x: x[0])
 
-        logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(message)s', level=logging.INFO)
         log_file_name = opt.eval_path + '.eval.result.txt'
         file_handler = logging.FileHandler(log_file_name, encoding='utf-8')
-        file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)-5.5s:%(name)s] %(message)s'))
+        file_handler.setFormatter(logging.Formatter('%(message)s'))
         logging.root.addHandler(file_handler)
         logger = logging.getLogger(__name__)
 
