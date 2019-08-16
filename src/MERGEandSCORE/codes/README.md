@@ -29,7 +29,7 @@
 
 * get the predicted logical form using union of scores
 
-    - ```merge_score.py```
+    - ```score_merge.py```
 
     - there are currently four kinds of settings
 
