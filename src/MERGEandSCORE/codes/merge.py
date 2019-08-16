@@ -217,11 +217,11 @@ if __name__ == '__main__':
         id = sample['id']
         type = sample['type']
         logical_pred = sample['logical']
-        # logical_raw = dev[id - 1]
+        # logical_pred = dev[id - 1]
 
         logical_pred = return_to_raw(logical_pred, type, id, opt.mode)
         logical_pred = ' '.join(logical_pred) 
-        data[index]['logical_raw'] = logical_pred
+        # data[index]['logical_raw'] = logical_pred
 
         for k,v in logical_pred_dict.items():
             data[index][k] = v
