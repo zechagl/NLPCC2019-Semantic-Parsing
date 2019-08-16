@@ -31,7 +31,7 @@
 
     - ```merge_score.py```
 
-    - there are presently 3 kinds of settings
+    - there are currently four kinds of settings
 
         1. **WLIS_NEW** : baseline model
 
