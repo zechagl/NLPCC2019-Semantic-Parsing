@@ -40,3 +40,11 @@
         3. **WLIS_NEW** + **pep** : add entity-predicate pair-score to consider for final prediction
 
         4. **WLIS_NEW** + **point** + **pep** : add all scores for final prediction (including cover count)
+
+## Step4: ```analysis```
+
+* results of evaluation on development set are under the directory ```analysis```
+
+* prediction results of test and dev sets are under the directory of ```data/output/results```
+
+* error samples on dev set are under the directory of ```data/output/error```
