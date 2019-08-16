@@ -33,10 +33,10 @@
 
     - there are presently 3 kinds of settings
 
-        1. WLIS_NEW : baseline model
+        1. **WLIS_NEW** : baseline model
 
-        2. WLIS_NEW + point : add point-loss as a score to consider for final prediction
+        2. **WLIS_NEW** + **point** : add point-loss as a score to consider for final prediction
 
-        3. WLIS_NEW + pep : add entity-predicate pair-score to consider for final prediction
+        3. **WLIS_NEW** + **pep** : add entity-predicate pair-score to consider for final prediction
 
-        4. WLIS_NEW + point + pep : add all scores for final prediction (including cover count)
+        4. **WLIS_NEW** + **point** + **pep** : add all scores for final prediction (including cover count)
