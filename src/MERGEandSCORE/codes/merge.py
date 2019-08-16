@@ -1,8 +1,10 @@
 import json
 import codecs
 import argparse
+from tqdm import tqdm
+
 from logic_form import get_logic
-import argparse
+from score_merge import return_to_raw
 
 
 json_load = lambda x : json.load(codecs.open(x, 'r', 'utf-8'))
@@ -180,40 +182,47 @@ def process(data, prediction, lgp_dict, dict_full):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='merge.py')
-    parser.add_argument('-mode', require=True, choices=['dev', 'test'])
-    parser.add_argument('-input_path', require=True, help="""input timestep2-v3 in json""")
-    parser.add_argument('-pred_path', require=True, help="""input logical form prediction in json""")
-    parser.add_argument('-result_path', require=True, help="""output merge in json""")
-    parser.add_argument('-loss_path', require=True, default=[], nargs='+', help="""loss results in json""")
-    parser.add_argument('-index_path', require=True, default=[], nargs='+', 
+    parser.add_argument('-mode', required=True, choices=['dev', 'test'])
+    parser.add_argument('-input_path', required=True, help="""input timestep2-v3 in json""")
+    parser.add_argument('-pred_path', required=True, help="""input logical form prediction in json""")
+    parser.add_argument('-result_path', required=True, help="""output merge in json""")
+    parser.add_argument('-loss_path', required=True, default=[], nargs='+', help="""loss results in json""")
+    parser.add_argument('-index_path', required=True, default=[], nargs='+', 
                         help="""index files (score of entites and predicates) in json""")
-    parser.add_argument('-qu2logical', require=True, help="""dictionary of question : patter in json""")
-    parser.add_argument('-gold_logical_form', default='MSParS.dev', help="""raw file of development set""")
+    parser.add_argument('-qu2logical', required=True, help="""dictionary of question : patter in json""")
+    # parser.add_argument('-gold_logical_form', default='MSParS.dev', help="""raw file of development set""")
     opt = parser.parse_args()
+
+    print('Loading data and index files ......')
 
     data = json_load(opt.input_path)
     predictions = json_load(opt.pred_path)
     lgp_dict = json_load(opt.qu2logical)
 
-    with open(opt.gold_logical_form, 'r', encoding='utf-8') as f:
-        dev = f.read()
-    dev = dev.split('==================================================\n')
-    dev = dev[0:-1]
-    dev = [d.strip().split('\n') for d in dev]
-    dev = [[s.split('\t') for s in sample] for sample in dev]
-    dev = [sample[1][1] for sample in dev]
+    # with open(opt.gold_logical_form, 'r', encoding='utf-8') as f:
+    #     dev = f.read()
+    # dev = dev.split('==================================================\n')
+    # dev = dev[0:-1]
+    # dev = [d.strip().split('\n') for d in dev]
+    # dev = [[s.split('\t') for s in sample] for sample in dev]
+    # dev = [sample[1][1] for sample in dev]
 
     dict_full = {}
     dict_full['0'] = json_load(opt.index_path[0])
     dict_full['1'] = json_load(opt.index_path[1])
     dict_acc = {}
-    for index,sample in enumerate(data):
+    for index,sample in tqdm(enumerate(data), desc='   - (Loading Pattern Pairs) -   '):
         prediction = predictions[index]
         logical_pred_dict = process(sample, prediction, lgp_dict, dict_full)
         id = sample['id']
-        logical_raw = dev[id - 1]
+        type = sample['type']
+        logical_pred = sample['logical']
+        # logical_raw = dev[id - 1]
 
-        data[index]['logical_raw'] = logical_raw
+        logical_pred = return_to_raw(logical_pred, type, id, opt.mode)
+        logical_pred = ' '.join(logical_pred) 
+        data[index]['logical_raw'] = logical_pred
+
         for k,v in logical_pred_dict.items():
             data[index][k] = v
 
@@ -224,8 +233,10 @@ if __name__ == '__main__':
     loss3 = json_load(opt.loss_path[2])
     loss1, loss2, loss3 = loss1[0], loss2[0], loss3[0]
     cnt = 0
-    for index, sample in enumerate(data):
+    for index, sample in tqdm(enumerate(data), desc='   - (Loading Pointer Loss) -   '):
         logical_pred = sample['logical_pred']
+        # if opt.mode == 'dev':
+        #     cnt += 1
         for i,lp in enumerate(logical_pred):
             logical_pred[i].append([loss1[cnt], loss2[cnt], loss3[cnt]])
             cnt += 1
@@ -239,4 +250,5 @@ if __name__ == '__main__':
                 v.append([loss1[cnt], loss2[cnt], loss3[cnt]])
                 cnt += 1
             data[index]['loss_for_split'] = v
+    print('Saving results ......')
     json_dump(data, opt.result_path)
