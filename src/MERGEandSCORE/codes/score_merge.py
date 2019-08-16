@@ -394,9 +394,7 @@ if __name__ == '__main__':
         dict_acc.sort(key=lambda x: x[0])
 
         logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: %(message)s', level=logging.INFO)
-        log_file_name = time.strftime("%Y%m%d-%H%M%S") + '.eval.result.txt'
-        if opt.eval_path:
-            log_file_name = os.path.join(opt.eval_path, log_file_name)
+        log_file_name = opt.eval_path + '.eval.result.txt'
         file_handler = logging.FileHandler(log_file_name, encoding='utf-8')
         file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)-5.5s:%(name)s] %(message)s'))
         logging.root.addHandler(file_handler)
