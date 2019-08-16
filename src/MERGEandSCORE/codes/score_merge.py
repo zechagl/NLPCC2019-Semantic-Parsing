@@ -1,9 +1,14 @@
+import os
+import time
 import json
 import codecs
 import sys
 import math
 import re
 import argparse
+from tqdm import tqdm
+import logging
+
 
 
 json_load = lambda x:json.load(codecs.open(x, 'r', encoding='utf-8'))
@@ -94,27 +99,44 @@ def filter_error(sample):
 
 def score(s1, s2, s3, s4, type, opt):
     '''根据四种分数：todo1，todo3，loss和覆盖词数计算总分数'''
+    ##=== score for todo3 - pattern score ===##
+    s1 = -100 + s1 if s1 < 0.5 else s1
+    if opt.remove_pair and opt.remove_pointer:
+        return s1, 0
+    ##=== score for todo1 - entity-predicate pair score ===##
     tmp_s2 = 1
     for x in s2:
         tmp_s2 *= x
     cnt2 = len(s2)
     s2 = tmp_s2
-    s2 = math.pow(s2, 1/cnt2) if cnt2 != 0 else 1
-    s1 = -100+s1 if s1 < 0.5 else s1
-    para = opt.todo1to3
+    s2 = math.pow(s2, 1 / cnt2) if cnt2 != 0 else 1
+    
+    para1 = opt.todo1to3
     if type == 'aggregation':
-        para = opt.todo1to3_aggregation
+        para1 = opt.todo1to3_aggregation
     elif type == 'single-relation':
-        para = opt.todo1to3_singlerelation
+        para1 = opt.todo1to3_singlerelation
     elif type == 'superlative0':
-        para = opt.todo1to3_superlative0
+        para1 = opt.todo1to3_superlative0
     elif type == 'multi-choice':
-        para = opt.todo1to3_multichoice
+        para1 = opt.todo1to3_multichoice
+    s = s1 + s2 * para1
+    if opt.remove_pointer:
+        return s, tmp_s2
+    ##=== score for cover rate ===##
     para2 = opt.cover2todo13
-    s = s1 + s2 * para
-    s = s/(1 + para) + para2 * s3
+    s = s/(1 + para1) + para2 * s3
+    ##=== score for loss - pointer score ===##
     para3 = opt.loss2others
+    if opt.remove_pair:
+        if type == 'aggregation':
+            para3 = 1.5
+        else:
+            para3 = 15
+        s = s1 + s4 * para3
+        return s, tmp_s2
     s = s/(1 + para2) + s4 * para3
+
     return s, tmp_s2
 
 def process(sample, opt):
@@ -191,17 +213,36 @@ def process(sample, opt):
 if __name__ == '__main__':
     ### ===== Prepare Options ===== ###
     parser = argparse.ArgumentParser(description='score_merge.py')
-    parser.add_argument('-mode', require=True, choices=['dev', 'test'])
-    parser.add_argument('-input_path', default='', help="""input timestep2-merge in json""")
-    parser.add_argument('-result_path', default='', help="""output in txt""")
-    parser.add_argument('-error_path', default='', help="""error samples in txt""")
-    parser.add_argument('-todo1to3', type=float, help="""TODO1 : TODO3""")
-    parser.add_argument('-todo1to3_aggregation', type=float, help="""TODO1 : TODO3 for aggregation""")
-    parser.add_argument('-todo1to3_singlerelation', type=float, help="""TODO1 : TODO3 for single-relation""")
-    parser.add_argument('-todo1to3_superlative0', type=float, help="""TODO1 : TODO3 for superlative0""")
-    parser.add_argument('-todo1to3_multichoice', type=float, help="""TODO1 : TODO3 for multi-choice""")
-    parser.add_argument('-cover2todo13', type=float, help="""cover-score : (TODO1 & TODO3)""")
-    parser.add_argument('-loss2others', type=float, help="""loss-score : [cover-score & (TODO1 & TODO3)]""")
+    parser.add_argument('-mode', required=True, choices=['dev', 'test'])
+
+    parser.add_argument('-input_path', default='', 
+                        help="""input timestep2-merge in json""")
+    parser.add_argument('-result_path', default='', 
+                        help="""output in txt""")
+    parser.add_argument('-error_path', default='', 
+                        help="""error samples in txt""")
+    parser.add_argument('-eval_path', default='', 
+                        help="""evaluation results on development set""")
+
+    parser.add_argument('-todo1to3', type=float, default=0.4,
+                        help="""TODO1 : TODO3""")
+    parser.add_argument('-todo1to3_aggregation', type=float, default=0.5,
+                        help="""TODO1 : TODO3 for aggregation""")
+    parser.add_argument('-todo1to3_singlerelation', type=float, default=2,
+                        help="""TODO1 : TODO3 for single-relation""")
+    parser.add_argument('-todo1to3_superlative0', type=float, default=15,
+                        help="""TODO1 : TODO3 for superlative0""")
+    parser.add_argument('-todo1to3_multichoice', type=float, default=0.25,
+                        help="""TODO1 : TODO3 for multi-choice""")
+    parser.add_argument('-cover2todo13', type=float, default=0.01,
+                        help="""cover-score : (TODO1 & TODO3)""")
+    parser.add_argument('-loss2others', type=float, default=1.5,
+                        help="""loss-score : [cover-score & (TODO1 & TODO3)]""")
+    
+    parser.add_argument('-remove_pointer', action='store_true', 
+                        help="""TEST POINTER - remove loss-score from the final score""")
+    parser.add_argument('-remove_pair', action='store_true', 
+                        help="""TEST EP-PAIR - remove entity-predicate pair-score from the final score""")
     
     opt = parser.parse_args()
 
@@ -213,7 +254,7 @@ if __name__ == '__main__':
     dict_acc['superlative'] = [0, 0]
     not_in_cnt, not_type_cnt, not_entity_cnt, highest_loss = 0, 0, 0, 0
     
-    for index, sample in enumerate(samples):
+    for index, sample in tqdm(enumerate(samples), desc='   - (Predicting) -   '):
         type = sample['type']
         id = sample['id']
         logical = sample['logical_raw']
@@ -301,21 +342,17 @@ if __name__ == '__main__':
         print_entity_pred = ' ||| '.join(print_entity_pred)
         
         ### ===== 记录结果 ===== ###
-        file = result_filename + '.all'
+        file = result_filename + '.txt'
         real_type = sample['type_pred']
         if real_type.startswith('superlative'):
             real_type = 'superlative'
-        if opt.mode == 'dev':
-            tmp_id_cnt_lll = 1
-        if type in ['single-relation', 'cvt'] or opt.mode == 'test':
-            with open(file, 'a', encoding='utf-8') as f:
-                f.write('<question id=' + str(tmp_id_cnt_lll) + '>\t' + ' '.join(sample['question']) + '\n')
-                f.write('<logical form id=' + str(tmp_id_cnt_lll) + '>\t' + logical_pred + '\n')
-                f.write('<parameters id=' + str(tmp_id_cnt_lll) + '>\t' + print_entity_pred + '\n')
-                f.write('<question type id=' + str(tmp_id_cnt_lll) + '>\t' + real_type + '\n')
-                f.write('==================================================\n')
-                if opt.mode == 'dev':
-                    tmp_id_cnt_lll += 1
+
+        with open(file, 'a', encoding='utf-8') as f:
+            f.write('<question id=' + str(id) + '>\t' + ' '.join(sample['question']) + '\n')
+            f.write('<logical form id=' + str(id) + '>\t' + logical_pred + '\n')
+            f.write('<parameters id=' + str(id) + '>\t' + print_entity_pred + '\n')
+            f.write('<question type id=' + str(id) + '>\t' + real_type + '\n')
+            f.write('==================================================\n')
 
         ### ===== 记录错误情况 ===== ###
         if opt.mode == 'dev':
@@ -326,24 +363,23 @@ if __name__ == '__main__':
                 dict_acc[type][0] += 1
                 if type.startswith('superlative'):
                     dict_acc['superlative'][0] += 1
-            else:
-                if all(flag):
-                    filename_tmp = opt.input_path.split('/')
-                    filename_tmp = filename_tmp[-1]
-                    filename_tmp = filename_tmp.split('.')
-                    filename_tmp = '.'.join(filename_tmp[0:-1])
-                    file = error_filename + '.' + filename_tmp
-                    with open(file, 'a', encoding='utf-8') as f:
-                        f.write('<question>'.ljust(15) + ' '.join(sample['question']) + '\n')
-                        f.write('<logical>'.ljust(15) + logical + '\n')
-                        f.write('<prediction>'.ljust(15) + logical_pred + '\n')
-                        f.write('<scores>'.ljust(15) + 'TODO3: ' + str(round(scores[0]*100, 1)) + '(' + str(round(highest[0]*100, 1)) + '); TODO1: ' \
-                                                                + str(round(scores[1]*100, 1)) + '(' + str(round(highest[1]*100, 1)) + '); COVER: ' \
-                                                                + str(scores[2]) + '(' + str(highest[2]) + '); LOSS: ' \
-                                                                + str(round(scores[3], 6)) + '(' + str(round(highest[3], 6)) + '). \n')
-                        f.write('<score-rank>'.ljust(15) + 'TODO3: ' + str(rank[0]) + '; TODO1: ' + str(rank[1]) + '; ' \
-                                                        + 'COVER: ' + str(rank[2]) + '; LOSS: ' + str(rank[3]) + '.\n')
-                        f.write('==================================================\n')
+            elif all(flag):
+                filename_tmp = opt.input_path.split('/')
+                filename_tmp = filename_tmp[-1]
+                filename_tmp = filename_tmp.split('.')
+                filename_tmp = '.'.join(filename_tmp[0:-1])
+                file = error_filename + '.' + filename_tmp
+                with open(file, 'a', encoding='utf-8') as f:
+                    f.write('<question>'.ljust(15) + ' '.join(sample['question']) + '\n')
+                    f.write('<logical>'.ljust(15) + logical + '\n')
+                    f.write('<prediction>'.ljust(15) + logical_pred + '\n')
+                    f.write('<scores>'.ljust(15) + 'TODO3: ' + str(round(scores[0]*100, 1)) + '(' + str(round(highest[0]*100, 1)) + '); TODO1: ' \
+                                                             + str(round(scores[1]*100, 1)) + '(' + str(round(highest[1]*100, 1)) + '); COVER: ' \
+                                                             + str(scores[2]) + '(' + str(highest[2]) + '); LOSS: ' \
+                                                             + str(round(scores[3], 6)) + '(' + str(round(highest[3], 6)) + '). \n')
+                    f.write('<score-rank>'.ljust(15) + 'TODO3: ' + str(rank[0]) + '; TODO1: ' + str(rank[1]) + '; ' \
+                                                     + 'COVER: ' + str(rank[2]) + '; LOSS: ' + str(rank[3]) + '.\n')
+                    f.write('==================================================\n')
 
             dict_acc[type][1] += 1
             y += 1
@@ -352,16 +388,21 @@ if __name__ == '__main__':
 
 
     ### ===== 输出dev上的预测正确率情况 ===== ###
-    if opt.mode == 'dev':          
-        print(not_in_cnt / len(samples))
-        print(not_in_cnt / len(samples) - not_type_cnt / len(samples) - not_entity_cnt / len(samples))
-        print(not_type_cnt / len(samples))
-        print(not_entity_cnt / len(samples))
+    if opt.mode == 'dev':
+        all_accu = round(x / y * 100, 2)
+        dict_acc = [(k, v[0] / v[1] * 100) for k, v in dict_acc.items()]
+        dict_acc.sort(key=lambda x: x[0])
 
-        print('overall', str(round(x/y*100, 2)))
-        dict_acc = [(k, v[0]/v[1]*100) for k,v in dict_acc.items()]
-        dict_acc.sort(key=lambda x:x[0])
+        logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: %(message)s', level=logging.INFO)
+        log_file_name = time.strftime("%Y%m%d-%H%M%S") + '.eval.result.txt'
+        if opt.eval_path:
+            log_file_name = os.path.join(opt.eval_path, log_file_name)
+        file_handler = logging.FileHandler(log_file_name, encoding='utf-8')
+        file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)-5.5s:%(name)s] %(message)s'))
+        logging.root.addHandler(file_handler)
+        logger = logging.getLogger(__name__)
+
+        logger.info(opt)
+        logger.info('overall accuracy: {all: 2.2f}%\n'.format(all=all_accu))
         for d in dict_acc:
-            print(d[0], str(round(d[1], 2)))
-        
-        print('\n', highest_loss)
+            logger.info(d[0] + ' accuracy: {acc: 2.2f}%'.format(type=d[0], acc=round(d[1], 2)))
