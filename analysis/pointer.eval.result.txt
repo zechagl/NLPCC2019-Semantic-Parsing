@@ -1,0 +1,20 @@
+Namespace(cover2todo13=0.01, error_path='../datahome/error/dev.error', eval_path='pointer', input_path='../datahome/timestep3/dev_timestep3.json', loss2others=1.5, mode='dev', remove_pair=True, remove_pointer=False, result_path='../datahome/results/dev.result', todo1to3=0.4, todo1to3_aggregation=0.5, todo1to3_multichoice=0.25, todo1to3_singlerelation=2.0, todo1to3_superlative0=15.0)
+
+overall accuracy:  84.21%
+
+aggregation accuracy:  71.96%
+comparative accuracy:  100.00%
+cvt accuracy:  85.46%
+multi-choice accuracy:  45.52%
+multi-constraint accuracy:  92.15%
+multi-hop accuracy:  95.77%
+multi-turn-answer accuracy:  96.23%
+multi-turn-entity accuracy:  81.39%
+multi-turn-predicate accuracy:  89.00%
+single-relation accuracy:  87.47%
+superlative accuracy:  74.28%
+superlative0 accuracy:  70.37%
+superlative1 accuracy:  93.97%
+superlative2 accuracy:  100.00%
+superlative3 accuracy:  100.00%
+yesno accuracy:  89.33%
