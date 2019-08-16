@@ -23,11 +23,11 @@
 
     - merge the entity-predicate pair-scores into data
 
-    - merge the pointer-loss scores into data: **you can choose the loss files to use here, however, at the present the number of loss files is fixed to 3**
+    - merge the pointer-loss scores into data: **you can choose which loss files to use here, however, at the present the number of loss files is fixed to 3**
 
 ## Step3: ```score.sh```
 
-* get the prediction logical form using union of scores
+* get the predicted logical form using union of scores
 
     - ```merge_score.py```
 
