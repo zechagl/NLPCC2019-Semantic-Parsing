@@ -1,4 +1,59 @@
 # NLPCC2019-Semantic-Parsing
-a sketch-based system for semantic parsing
+###NLPCC19: A Sketch-Based System for Semantic Parsing
 
-pre-train models and data will be released later
+## Setup
+
+### Requirements
+
+- Python 3.6
+- Tensorflow 1.11 (GPU)
+
+### Install Python dependency
+
+```sh
+pip install -r requirements.txt
+```
+
+### Download data and pretrained models
+
+Download Bert pretrained model [BERT-Base, Uncased](https://github.com/google-research/bert)
+
+Download the data file from [Google Drive](https://drive.google.com/open?id=1Qj4BgazLCs9qqUHSU2ezyf7GKNX5RiHL)
+
+Download pretrained models from [Google Drive](https://drive.google.com/open?id=1ocmWJhCDLt5S8TEtHTPemd0mbUKxs72I)
+
+## Usage
+
+### Run multi-task model
+
+```sh
+sh multitask.sh
+```
+
+### Run pattern pair matching net
+
+```sh
+sh pattern_pair.sh
+```
+
+### Run predicate-entity pair matching net
+
+```sh
+sh pep.sh
+```
+
+### Run Pointer net
+
+```sh
+sh pointer.sh
+```
+
+### Rank by 3 intermediate scores
+
+```sh
+sh score.sh
+```
+
+## Contact
+
+Any questions : zcli18@pku.edu.cn
