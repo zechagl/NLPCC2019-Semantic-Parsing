@@ -1,5 +1,6 @@
 # NLPCC2019-Semantic-Parsing
-###NLPCC19: A Sketch-Based System for Semantic Parsing
+
+NLPCC19: A Sketch-Based System for Semantic Parsing
 
 ## Setup
 
@@ -54,6 +55,6 @@ sh pointer.sh
 sh score.sh
 ```
 
-## Contact
+## Contact information
 
 Any questions : zcli18@pku.edu.cn
