@@ -1,10 +1,10 @@
-#SOURCE_TRAIN=data/json/train.json
-#SOURCE_DEV=data/json/dev.json
-#TARGET_TRAIN=data/multitask/train.tsv
-#TARGET_TEST=data/multitask/test.tsv
-#LABEL2ID=data/json/label2id.json
-#RANDOM=36
-#python -m src.multitask.get_multi_task_data --strain $SOURCE_TRAIN --sdev $SOURCE_DEV --train $TARGET_TRAIN --test $TARGET_TEST --label $LABEL2ID --random $RANDOM
+SOURCE_TRAIN=data/json/train.json
+SOURCE_DEV=data/json/dev.json
+TARGET_TRAIN=data/multitask/train.tsv
+TARGET_TEST=data/multitask/test.tsv
+LABEL2ID=data/json/label2id.json
+RANDOM=36
+python -m src.multitask.get_multi_task_data --strain $SOURCE_TRAIN --sdev $SOURCE_DEV --train $TARGET_TRAIN --test $TARGET_TEST --label $LABEL2ID --random $RANDOM
 
 export CUDA_VISIBLE_DEVICES=0
 BERT_BASE_DIR=uncased_L-12_H-768_A-12
@@ -29,34 +29,30 @@ ANALYSIS=analysis/multi_task
 python -m src.multitask.deal_with_multi_task -r $RESULT -t $TOKEN -e $ELABEL2ID -s $SLABEL2ID -a $ANALYSIS
 
 
-EXEHOME=src/MERGEandSCORE/code
-DATAHOME=data
-cd ${EXEHOME}
-
 ###===== transform timestep2 v1 to v2 : merge entity-label results into timestep2 =====###
-python label_in_timestep2.py \
+python -m src.score.label_in_timestep2 \
        -mode dev \
-       -input_path ${DATAHOME}/json/timestep2_dev_v1.json \
-       -label_path ${DATAHOME}/output/multitask/dev_labeled_results.json \
-       -result_path ${DATAHOME}/json/timestep2_dev_v2.json
+       -input_path data/json/timestep2_dev_v1.json \
+       -label_path output/multitask/labeled_results.json \
+       -result_path data/json/timestep2_dev_v2.json
 
-python label_in_timestep2.py \
+python -m src.score.label_in_timestep2 \
        -mode test \
-       -input_path ${DATAHOME}/json/timestep2_test_v1.json \
-       -label_path ${DATAHOME}/output/multitask/test_labeled_results.json \
-       -result_path  ${DATAHOME}/json/timestep2_test_v2.json
+       -input_path data/json/timestep2_test_v1.json \
+       -label_path output/multitask/labeled_results.json \
+       -result_path  data/json/timestep2_test_v2.json
 
 ###===== transform timestep2 v2 to v3 : align the number of entities/values predicted =====###
 ###                                     with that in type_pred_pattern in timestep2 data   ###
-python entity_in_timestep2.py \
+python -m src.score.entity_in_timestep2 \
        -mode dev \
-       -input_path ${DATAHOME}/json/timestep2_dev_v2.json \
-       -label_path ${DATAHOME}/output/multitask/dev_labeled_results.json \
-       -result_path ${DATAHOME}/json/timestep2_dev_v3.json
+       -input_path data/json/timestep2_dev_v2.json \
+       -label_path output/multitask/labeled_results.json \
+       -result_path data/json/timestep2_dev_v3.json
 
-python entity_in_timestep2.py \
+python -m src.score.entity_in_timestep2 \
        -mode test \
-       -input_path ${DATAHOME}/json/timestep2_test_v2.json \
-       -label_path ${DATAHOME}/output/multitask/test_labeled_results.json \
-       -result_path ${DATAHOME}/json/timestep2_test_v3.json
+       -input_path data/json/timestep2_test_v2.json \
+       -label_path output/multitask/labeled_results.json \
+       -result_path data/json/timestep2_test_v3.json
        

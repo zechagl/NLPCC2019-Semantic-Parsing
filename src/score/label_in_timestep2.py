@@ -1,6 +1,6 @@
 import json
 import codecs
-from try_ts import get_type_pattern, check_pattern
+from src.score.try_ts import get_type_pattern, check_pattern
 import argparse
 
 
@@ -19,9 +19,9 @@ def data_load(filename):
 
 def labelfordata(input, labels, mode):
     '''验证集和测试集的 预测15类 type_pred'''
-    type_dict = json_load('index/class2id.json')
+    type_dict = json_load('data/json/label2id.json')
     type_dict = dict([(value, key) for key, value in type_dict.items()])
-    label_dict = json_load('index/el2id.json')
+    label_dict = json_load('data/json/el2id.json')
     output = []
     for n in range(9000):
         sample = input[n]

@@ -3,8 +3,8 @@ import codecs
 import argparse
 from tqdm import tqdm
 
-from logic_form import get_logic
-from score_merge import return_to_raw
+from src.score.logic_form import get_logic
+from src.score.score_merge import return_to_raw
 
 
 json_load = lambda x : json.load(codecs.open(x, 'r', 'utf-8'))

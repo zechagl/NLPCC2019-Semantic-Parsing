@@ -219,10 +219,6 @@ def convert_single_example(ex_index, example, entity_label_list, class_label_lis
     label2idpath = os.path.join(FLAGS.output_dir, 'label2id.json')
     label2idpath_reference = os.path.join(FLAGS.output_dir, 'label2id_reference.json')
 
-    if not os.path.exists(label2idpath):
-        with open(label2idpath, 'w', encoding='utf8') as w:
-            json.dump(label_map, w)
-
     if not os.path.exists(label2idpath_reference):
         with open(label2idpath_reference, 'w', encoding='utf8') as w:
             json.dump(label_map_reference, w)
@@ -642,9 +638,7 @@ def main(_):
 
     if FLAGS.do_predict:
         token_path = os.path.join(FLAGS.output_dir, "token_split.txt")
-        with open(os.path.join(FLAGS.output_dir, 'label2id.json'), 'r', encoding='utf8') as rf:
-            label2id = json.load(rf)
-            id2label = {value: key for key, value in label2id.items()}
+
         if os.path.exists(token_path):
             os.remove(token_path)
         predict_examples = processor.get_test_examples(FLAGS.data_dir)

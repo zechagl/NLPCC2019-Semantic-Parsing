@@ -1,10 +1,10 @@
 import re
-from try_ts import get_type_pattern
+from src.score.try_ts import get_type_pattern
 
 ignore_token = set(['(', ')', 'and', 'or', 'isa', 'lambda', 'exist', 'equal'])
 
 def get_relation():
-    with open('index/relations.txt', 'r', encoding='utf-8') as f:
+    with open('data/json/relations.txt', 'r', encoding='utf-8') as f:
         data = f.read().strip().split('\n')
     dict = {}
     for d in data:
