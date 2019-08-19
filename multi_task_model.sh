@@ -1,12 +1,3 @@
-#SOURCE_PATH=data/MSParS/MSParS.dev
-#TARGET_PATH=data/json/dev.json
-#LABEL2ID_PATH=data/json/label2id.json
-#python -m src.multitask.data2json -s $SOURCE_PATH -t $TARGET_PATH -l $LABEL2ID_PATH
-#
-#SOURCE_PATH=data/MSParS/MSParS.train
-#TARGET_PATH=data/json/train.json
-#python -m src.multitask.data2json -s $SOURCE_PATH -t $TARGET_PATH
-#
 #SOURCE_TRAIN=data/json/train.json
 #SOURCE_DEV=data/json/dev.json
 #TARGET_TRAIN=data/multitask/train.tsv
