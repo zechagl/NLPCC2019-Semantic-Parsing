@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 Download Bert pretrained model [BERT-Base, Uncased](https://github.com/google-research/bert)
 
-Download the data file from [Google Drive](https://drive.google.com/open?id=1Qj4BgazLCs9qqUHSU2ezyf7GKNX5RiHL)
+Download the data file from [Google Drive](https://drive.google.com/open?id=19faRIaxT-z9rA2CSD7er1WCDnTJHLAU6)
 
 Download pretrained models from [Google Drive](https://drive.google.com/open?id=1ocmWJhCDLt5S8TEtHTPemd0mbUKxs72I)
 
