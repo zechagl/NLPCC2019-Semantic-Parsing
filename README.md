@@ -1,6 +1,6 @@
 # NLPCC2019-Semantic-Parsing
 
-NLPCC19: A Sketch-Based System for Semantic Parsing
+NLPCC19: ["A Sketch-Based System for Semantic Parsing"](https://arxiv.org/abs/1909.00574).
 
 ## Setup
 
