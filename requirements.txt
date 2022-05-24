@@ -1,5 +1,5 @@
 Keras==2.2.4
-tensorflow-gpu==1.11.0
+tensorflow-gpu==2.6.4
 nltk==3.4
 tqdm==4.31.1
 numpy==1.16.2
